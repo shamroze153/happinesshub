@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Dashboard — Happiness Hub</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    .dashboard-page { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+    /* Top bar */
+    .dash-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .dash-welcome h2 { font-size: 1.4rem; margin-bottom: 2px; }
+    .dash-welcome p  { font-size: 14px; color: var(--text-secondary); }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 4px; margin-bottom: 24px; }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: none;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-body);
+    }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-btn:hover:not(.active) { background: var(--bg-elevated); color: var(--text-primary); }
+
+    /* Referral box */
+    .referral-box {
+      background: linear-gradient(135deg, var(--bg-elevated), var(--bg-card));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .referral-link-text {
+      font-family: monospace;
+      font-size: 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      color: var(--primary-light);
+      flex: 1;
+      min-width: 200px;
+    }
+
+    /* Order form */
+    .order-form-card { max-width: 680px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .form-row-3 { grid-template-columns: 1fr; } }
+
+    /* Search */
+    .orders-toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .orders-search { flex: 1; min-width: 200px; position: relative; }
+    .orders-search input { width: 100%; padding-left: 36px; }
+    .orders-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+    /* Status filter */
+    .status-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+    .status-chip {
+      padding: 6px 14px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .status-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    /* Upload area */
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .upload-area:hover { border-color: var(--primary); }
+    .upload-area input { display: none; }
+    .upload-thumb { max-height: 80px; margin: 8px auto 0; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-logo">
+      <div class="logo-icon">😊</div>
+      Happiness<span>Hub</span>
+    </a>
+    <div class="navbar-links">
+      <a href="index.html">Deals</a>
+      <a href="agent-dashboard.html" class="active">Dashboard</a>
+    </div>
+    <button onclick="logout()" class="btn-secondary btn-sm">Sign Out</button>
+  </div>
+</nav>
+
+<div class="dashboard-page">
+
+  <!-- Top Bar -->
+  <div class="dash-topbar">
+    <div class="dash-welcome">
+      <h2>👋 Welcome back, <span id="agentName">Agent</span></h2>
+      <p>Manage your orders and track your commissions</p>
+    </div>
+    <button onclick="showTab('submit')" class="btn-primary">+ Submit New Order</button>
+  </div>
+
+  <!-- Referral Link -->
+  <div class="referral-box">
+    <div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">🔗 YOUR REFERRAL LINK</div>
+      <div class="referral-link-text" id="referralLink">Loading...</div>
+    </div>
+    <button onclick="copyReferral()" class="btn-secondary btn-sm" id="copyBtn">📋 Copy Link</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending</div></div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-value" id="statDone">—</div><div class="stat-label">Cashback Sent</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-value" id="statCashback">—</div><div class="stat-label">Total Cashback</div></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabOrders" onclick="showTab('orders')">📋 My Orders</button>
+    <button class="tab-btn" id="tabSubmit" onclick="showTab('submit')">➕ Submit Order</button>
+  </div>
+
+  <!-- ORDERS TAB -->
+  <div id="panelOrders">
+    <div class="orders-toolbar">
+      <div class="orders-search">
+        <span class="orders-search-icon">🔍</span>
+        <input type="text" class="form-control" id="ordersSearch" placeholder="Search by buyer, product, order ID..." oninput="filterOrders()">
+      </div>
+      <select class="form-control" id="statusFilter" onchange="filterOrders()" style="max-width:180px;">
+        <option value="">All Statuses</option>
+        <option>Pending</option>
+        <option>Ordered</option>
+        <option>Delivered</option>
+        <option>Cashback Sent</option>
+        <option>Rejected</option>
+        <option>Need More Info</option>
+        <option>PayPal Issue</option>
+      </select>
+    </div>
+    <div class="table-container" id="ordersTableWrap">
+      <div style="display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;">
+        <div class="spinner"></div>
+        <span style="color:var(--text-secondary);">Loading orders...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT ORDER TAB -->
+  <div id="panelSubmit" style="display:none;">
+    <div class="card order-form-card">
+      <h3 style="margin-bottom:20px;">📝 Submit Order on Behalf of Buyer</h3>
+      <form id="orderForm" novalidate>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label class="form-label" for="buyerName">Buyer Name *</label>
+            <input type="text" id="buyerName" class="form-control" placeholder="Full name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="buyerWhatsapp">Buyer WhatsApp *</label>
+            <input type="tel" id="buyerWhatsapp" class="form-control" placeholder="+1234567890" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="productSelect">Select Product *</label>
+          <select id="productSelect" class="form-control" required>
+            <option value="">Loading products...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="amazonOrderId">Amazon / Store Order ID *</label>
+          <input type="text" id="amazonOrderId" class="form-control" placeholder="e.g. 114-XXXXXXX-XXXXXXX" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Order Screenshot *</label>
+          <div class="upload-area" onclick="document.getElementById('screenshotFile').click()">
+            <input type="file" id="screenshotFile" accept="image/*" onchange="previewScreenshot(event)">
+            <div id="uploadPlaceholder">
+              <div style="font-size:24px;">📷</div>
+              <div style="font-size:13px;color:var(--text-secondary);margin-top:6px;">Click to upload screenshot</div>
+            </div>
+            <img id="screenshotPreview" class="upload-thumb" style="display:none;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="orderNotes">Notes (optional)</label>
+          <textarea id="orderNotes" class="form-control" rows="2" placeholder="Any additional information..."></textarea>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <button type="submit" class="btn-primary" id="submitBtn">Submit Order</button>
+          <button type="button" onclick="showTab('orders')" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+
+      <div id="submitSuccess" style="display:none;text-align:center;padding:24px;">
+        <div style="font-size:48px;">🎉</div>
+        <h3 style="margin:12px 0 8px;">Order Submitted!</h3>
+        <p>Order ID: <strong id="newOrderId" style="color:var(--primary-light);"></strong></p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap;">
+          <button onclick="resetAndNew()" class="btn-primary">Submit Another</button>
+          <button onclick="showTab('orders')" class="btn-secondary">View Orders</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="lib/hh.js"></script>
+<script>
+  let session = null;
+  let allOrders = [];
+  let products = [];
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    session = HH.requireAuth("agent", "agent-login.html");
+    if (!session) return;
+
+    document.getElementById("agentName").textContent = session.name || session.actor_id;
+    document.getElementById("referralLink").textContent =
+      `${location.origin}${location.pathname.replace("agent-dashboard.html", "")}?ref=${session.actor_id}`;
+
+    await Promise.all([loadOrders(), loadProducts()]);
+  });
+
+  // ── TABS ────────────────────────────────────────────────────
+  function showTab(tab) {
+    document.getElementById("panelOrders").style.display = tab === "orders" ? "block" : "none";
+    document.getElementById("panelSubmit").style.display = tab === "submit" ? "block" : "none";
+    document.getElementById("tabOrders").classList.toggle("active", tab === "orders");
+    document.getElementById("tabSubmit").classList.toggle("active", tab === "submit");
+  }
+
+  // ── COPY REFERRAL ────────────────────────────────────────────
+  function copyReferral() {
+    const text = document.getElementById("referralLink").textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById("copyBtn");
+      btn.textContent = "✅ Copied!";
+      setTimeout(() => btn.textContent = "📋 Copy Link", 2000);
+    });
+  }
+
+  // ── LOAD ORDERS ──────────────────────────────────────────────
+  async function loadOrders() {
+    const auth = HH.getAuthBody("agent");
+    const res = await HH.post("getAgentOrders", auth);
+
+    if (!res.success) {
+      document.getElementById("ordersTableWrap").innerHTML =
+        `<div style="padding:40px;text-align:center;color:var(--text-secondary);">${HH.escapeHtml(res.error)}</div>`;
+      return;
+    }
+
+    allOrders = res.orders || [];
+
+    // Update stats
+    const s = res.stats || {};
+    document.getElementById("statTotal").textContent = s.total ?? allOrders.length;
+    document.getElementById("statPending").textContent = s.pending ?? 0;
+    document.getElementById("statDone").textContent = s.completed ?? 0;
+    document.getElementById("statCashback").textContent = HH.formatCashback(s.total_cashback ?? 0);
+
+    renderOrdersTable(allOrders);
+  }
+
+  function filterOrders() {
+    const q = (document.getElementById("ordersSearch").value || "").toLowerCase();
+    const statusVal = document.getElementById("statusFilter").value;
+    let filtered = allOrders;
+    if (statusVal) filtered = filtered.filter(o => o.status === statusVal);
+    if (q) filtered = filtered.filter(o =>
+      (o.buyer_name || "").toLowerCase().includes(q) ||
+      (o.product_title || "").toLowerCase().includes(q) ||
+      (o.order_id || "").toLowerCase().includes(q) ||
+      (o.amazon_order_id || "").toLowerCase().includes(q) ||
+      (o.buyer_whatsapp || "").includes(q)
+    );
+    renderOrdersTable(filtered);
+  }
+
+  function renderOrdersTable(orders) {
+    const wrap = document.getElementById("ordersTableWrap");
+    if (!orders.length) {
+      wrap.innerHTML = `<div style="padding:48px;text-align:center;color:var(--text-secondary);">
+        <div style="font-size:36px;margin-bottom:12px;">📋</div>
+        <p>No orders found.</p>
+      </div>`;
+      return;
+    }
+
+    wrap.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Buyer</th>
+            <th>Product</th>
+            <th>Order ID</th>
+            <th>Cashback</th>
+            <th>Status</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orders.map(o => `
+            <tr>
+              <td>
+                <div style="font-weight:500;">${HH.escapeHtml(o.buyer_name)}</div>
+                <div style="font-size:12px;color:var(--text-muted);">${HH.escapeHtml(o.buyer_whatsapp)}</div>
+              </td>
+              <td style="max-width:160px;">
+                <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${HH.escapeHtml(o.product_title)}</div>
+              </td>
+              <td style="font-size:12px;font-family:monospace;color:var(--text-secondary);">
+                ${HH.escapeHtml(o.amazon_order_id || o.order_id)}
+              </td>
+              <td style="color:var(--primary-light);font-weight:600;">${HH.formatCashback(o.cashback_amount)}</td>
+              <td>${HH.statusBadge(o.status)}</td>
+              <td style="font-size:12px;color:var(--text-muted);">${HH.timeAgo(o.submitted_at)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── LOAD PRODUCTS ────────────────────────────────────────────
+  async function loadProducts() {
+    const res = await HH.get("getProducts");
+    if (res.success) {
+      products = res.products || [];
+      const sel = document.getElementById("productSelect");
+      sel.innerHTML = `<option value="">— Select a product —</option>` +
+        products.map(p => `<option value="${HH.escapeHtml(p.product_id)}">${HH.escapeHtml(p.title)} (${HH.formatCashback(p.cashback_amount)} cashback)</option>`).join("");
+    }
+  }
+
+  // ── ORDER FORM ────────────────────────────────────────────────
+  document.getElementById("orderForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
+    try {
+      const name = document.getElementById("buyerName").value.trim();
+      const whatsapp = document.getElementById("buyerWhatsapp").value.trim();
+      const product_id = document.getElementById("productSelect").value;
+      const amazon_order_id = document.getElementById("amazonOrderId").value.trim();
+      const notes = document.getElementById("orderNotes").value.trim();
+      const fileInput = document.getElementById("screenshotFile");
+
+      if (!name || !whatsapp || !product_id || !amazon_order_id) {
+        HH.toast("Please fill in all required fields", "error"); return;
+      }
+      if (!fileInput.files[0]) {
+        HH.toast("Please upload the order screenshot", "error"); return;
+      }
+
+      btn.textContent = "Uploading screenshot...";
+      let screenshot_url = "";
+      try {
+        screenshot_url = await HH.uploadFile(fileInput.files[0]);
+      } catch (err) {
+        HH.toast("Upload failed: " + err.message, "error"); return;
+      }
+
+      btn.textContent = "Saving order...";
+      const auth = HH.getAuthBody("agent");
+      const body = { ...auth, buyer_name: name, buyer_whatsapp: whatsapp, product_id, amazon_order_id, screenshot_url, notes };
+      const res = await HH.post("submitOrder", body);
+
+      if (res.success) {
+        document.getElementById("orderForm").style.display = "none";
+        document.getElementById("submitSuccess").style.display = "block";
+        document.getElementById("newOrderId").textContent = res.order_id;
+        await loadOrders(); // Refresh stats
+      } else {
+        HH.toast(res.error || "Submission failed", "error");
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Submit Order";
+    }
+  });
+
+  function previewScreenshot(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById("screenshotPreview").src = reader.result;
+      document.getElementById("screenshotPreview").style.display = "block";
+      document.getElementById("uploadPlaceholder").style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetAndNew() {
+    document.getElementById("orderForm").reset();
+    document.getElementById("orderForm").style.display = "block";
+    document.getElementById("submitSuccess").style.display = "none";
+    document.getElementById("screenshotPreview").style.display = "none";
+    document.getElementById("uploadPlaceholder").style.display = "block";
+  }
+
+  // ── LOGOUT ───────────────────────────────────────────────────
+  function logout() {
+    HH.clearSession("agent");
+    window.location.href = "agent-login.html";
+  }
+</script>
+</body>
+</html>

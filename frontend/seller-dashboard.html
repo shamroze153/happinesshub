@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Dashboard — Happiness Hub</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    .dashboard-page { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+    .dash-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .orders-toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .toolbar-search { flex: 1; min-width: 200px; position: relative; }
+    .toolbar-search input { width: 100%; padding-left: 36px; }
+    .toolbar-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+    /* Order detail modal */
+    .order-row { cursor: pointer; }
+    .order-row:hover td { background: var(--bg-elevated); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 500px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-item { background: var(--bg-elevated); border-radius: var(--radius-md); padding: 12px 14px; }
+    .detail-item-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .detail-item-value { font-size: 14px; color: var(--text-primary); word-break: break-word; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-logo">
+      <div class="logo-icon">😊</div>
+      Happiness<span>Hub</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:14px;color:var(--text-secondary);" id="storeName"></span>
+      <button onclick="logout()" class="btn-secondary btn-sm">Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="dashboard-page">
+  <div class="dash-topbar">
+    <div>
+      <h2 style="font-size:1.4rem;margin-bottom:2px;">🏪 Seller Dashboard</h2>
+      <p style="font-size:14px;color:var(--text-secondary);">View and manage your orders</p>
+    </div>
+    <button onclick="loadOrders()" class="btn-secondary btn-sm">🔄 Refresh</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total</div></div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending</div></div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div><div class="stat-value" id="statDelivered">—</div><div class="stat-label">Delivered</div></div></div>
+    <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-value" id="statSent">—</div><div class="stat-label">Cashback Sent</div></div></div>
+    <div class="stat-card"><div class="stat-icon">❌</div><div><div class="stat-value" id="statRejected">—</div><div class="stat-label">Rejected</div></div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="orders-toolbar">
+    <div class="toolbar-search">
+      <span class="toolbar-icon">🔍</span>
+      <input type="text" class="form-control" id="searchInput" placeholder="Search buyer, product, order ID..." oninput="filterOrders()">
+    </div>
+    <select class="form-control" id="statusFilter" onchange="filterOrders()" style="max-width:180px;">
+      <option value="">All Statuses</option>
+      <option>Pending</option>
+      <option>Ordered</option>
+      <option>Delivered</option>
+      <option>Cashback Sent</option>
+      <option>Rejected</option>
+      <option>Need More Info</option>
+      <option>PayPal Issue</option>
+    </select>
+  </div>
+
+  <!-- Orders Table -->
+  <div class="table-container" id="ordersWrap">
+    <div style="padding:60px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>
+  </div>
+</div>
+
+<!-- ORDER DETAIL MODAL -->
+<div class="modal-overlay" id="orderModal" style="display:none;" onclick="if(event.target===this)closeModal()">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <h3>Order Details</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div id="modalContent"></div>
+
+    <div style="margin-top:24px;border-top:1px solid var(--border);padding-top:20px;">
+      <h4 style="font-size:14px;margin-bottom:16px;color:var(--text-secondary);">UPDATE ORDER</h4>
+
+      <div class="form-group">
+        <label class="form-label">New Status</label>
+        <select id="newStatus" class="form-control">
+          <option value="">— Keep current status —</option>
+          <option>Pending</option>
+          <option>Ordered</option>
+          <option>Delivered</option>
+          <option>Cashback Sent</option>
+          <option>Rejected</option>
+          <option>Need More Info</option>
+          <option>PayPal Issue</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes for Buyer</label>
+        <textarea id="sellerNotes" class="form-control" rows="2" placeholder="Optional message to buyer (visible in tracking)..."></textarea>
+      </div>
+
+      <div class="form-group" id="proofSection">
+        <label class="form-label">Cashback Proof (for Cashback Sent status)</label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <input type="text" id="proofUrl" class="form-control" placeholder="Paste proof URL (PayPal screenshot link, etc.)" style="flex:1;">
+          <span style="color:var(--text-muted);font-size:13px;align-self:center;">or</span>
+          <label class="btn-secondary btn-sm" style="cursor:pointer;">
+            📎 Upload
+            <input type="file" id="proofFile" accept="image/*" style="display:none;" onchange="uploadProof()">
+          </label>
+        </div>
+        <div id="proofUploadStatus" style="font-size:12px;color:var(--text-secondary);margin-top:6px;"></div>
+      </div>
+
+      <div id="updateError" style="display:none;color:#ef4444;font-size:14px;margin-bottom:12px;"></div>
+
+      <div style="display:flex;gap:12px;">
+        <button onclick="updateOrder()" class="btn-primary" id="updateBtn">Save Changes</button>
+        <button onclick="closeModal()" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="lib/hh.js"></script>
+<script>
+  let session = null;
+  let allOrders = [];
+  let currentOrderId = null;
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    session = HH.requireAuth("seller", "seller-login.html");
+    if (!session) return;
+    document.getElementById("storeName").textContent = session.store_name || session.name;
+    await loadOrders();
+  });
+
+  async function loadOrders() {
+    document.getElementById("ordersWrap").innerHTML =
+      `<div style="padding:60px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+
+    const auth = HH.getAuthBody("seller");
+    const res = await HH.post("getSellerOrders", auth);
+
+    if (!res.success) {
+      document.getElementById("ordersWrap").innerHTML =
+        `<div style="padding:40px;text-align:center;color:#ef4444;">${HH.escapeHtml(res.error)}</div>`;
+      return;
+    }
+
+    allOrders = res.orders || [];
+    const s = res.stats || {};
+    document.getElementById("statTotal").textContent = s.total ?? 0;
+    document.getElementById("statPending").textContent = s.pending ?? 0;
+    document.getElementById("statDelivered").textContent = s.delivered ?? 0;
+    document.getElementById("statSent").textContent = s.cashback_sent ?? 0;
+    document.getElementById("statRejected").textContent = s.rejected ?? 0;
+
+    renderOrders(allOrders);
+  }
+
+  function filterOrders() {
+    const q = (document.getElementById("searchInput").value || "").toLowerCase();
+    const status = document.getElementById("statusFilter").value;
+    let f = allOrders;
+    if (status) f = f.filter(o => o.status === status);
+    if (q) f = f.filter(o =>
+      (o.buyer_name || "").toLowerCase().includes(q) ||
+      (o.product_title || "").toLowerCase().includes(q) ||
+      (o.order_id || "").toLowerCase().includes(q) ||
+      (o.amazon_order_id || "").toLowerCase().includes(q) ||
+      (o.buyer_whatsapp || "").includes(q)
+    );
+    renderOrders(f);
+  }
+
+  function renderOrders(orders) {
+    if (!orders.length) {
+      document.getElementById("ordersWrap").innerHTML =
+        `<div style="padding:48px;text-align:center;color:var(--text-secondary);">
+          <div style="font-size:36px;margin-bottom:12px;">📋</div><p>No orders found.</p></div>`;
+      return;
+    }
+    document.getElementById("ordersWrap").innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Buyer</th><th>Product</th><th>Order ID</th>
+          <th>Cashback</th><th>Status</th><th>Submitted</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${orders.map(o => `
+            <tr class="order-row" onclick="openModal('${HH.escapeHtml(o.order_id)}')">
+              <td>
+                <div style="font-weight:500;">${HH.escapeHtml(o.buyer_name)}</div>
+                <div style="font-size:12px;color:var(--text-muted);">${HH.escapeHtml(o.buyer_whatsapp)}</div>
+              </td>
+              <td style="max-width:150px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${HH.escapeHtml(o.product_title)}</div></td>
+              <td style="font-size:12px;font-family:monospace;color:var(--text-secondary);">${HH.escapeHtml(o.amazon_order_id)}</td>
+              <td style="color:var(--primary-light);font-weight:600;">${HH.formatCashback(o.cashback_amount)}</td>
+              <td>${HH.statusBadge(o.status)}</td>
+              <td style="font-size:12px;color:var(--text-muted);">${HH.timeAgo(o.submitted_at)}</td>
+              <td><button class="btn-secondary btn-sm" onclick="event.stopPropagation();openModal('${HH.escapeHtml(o.order_id)}')">Update</button></td>
+            </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── MODAL ─────────────────────────────────────────────────────
+  function openModal(orderId) {
+    const order = allOrders.find(o => o.order_id === orderId);
+    if (!order) return;
+    currentOrderId = orderId;
+
+    document.getElementById("newStatus").value = "";
+    document.getElementById("sellerNotes").value = order.seller_notes || "";
+    document.getElementById("proofUrl").value = order.cashback_proof_url || "";
+    document.getElementById("updateError").style.display = "none";
+
+    document.getElementById("modalContent").innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-item-label">Buyer Name</div>
+          <div class="detail-item-value">${HH.escapeHtml(order.buyer_name)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">WhatsApp</div>
+          <div class="detail-item-value">${HH.escapeHtml(order.buyer_whatsapp)}</div>
+        </div>
+        <div class="detail-item" style="grid-column:1/-1;">
+          <div class="detail-item-label">Product</div>
+          <div class="detail-item-value">${HH.escapeHtml(order.product_title)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Amazon Order ID</div>
+          <div class="detail-item-value">${HH.escapeHtml(order.amazon_order_id)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Cashback Amount</div>
+          <div class="detail-item-value" style="color:var(--primary-light);font-weight:700;">${HH.formatCashback(order.cashback_amount)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Current Status</div>
+          <div class="detail-item-value">${HH.statusBadge(order.status)}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-item-label">Submitted</div>
+          <div class="detail-item-value">${HH.timeAgo(order.submitted_at)}</div>
+        </div>
+        ${order.screenshot_url ? `
+        <div class="detail-item" style="grid-column:1/-1;">
+          <div class="detail-item-label">Order Screenshot</div>
+          <div class="detail-item-value">
+            <a href="${HH.escapeHtml(order.screenshot_url)}" target="_blank" class="btn-secondary btn-sm" style="display:inline-flex;margin-top:4px;">📎 View Screenshot</a>
+          </div>
+        </div>` : ""}
+        ${order.notes ? `
+        <div class="detail-item" style="grid-column:1/-1;">
+          <div class="detail-item-label">Agent Notes</div>
+          <div class="detail-item-value">${HH.escapeHtml(order.notes)}</div>
+        </div>` : ""}
+      </div>`;
+
+    document.getElementById("orderModal").style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    document.getElementById("orderModal").style.display = "none";
+    document.body.style.overflow = "";
+    currentOrderId = null;
+  }
+
+  async function uploadProof() {
+    const file = document.getElementById("proofFile").files[0];
+    if (!file) return;
+    const status = document.getElementById("proofUploadStatus");
+    status.textContent = "Uploading...";
+    try {
+      const url = await HH.uploadFile(file);
+      document.getElementById("proofUrl").value = url;
+      status.textContent = "✅ Uploaded successfully";
+      status.style.color = "var(--accent-green)";
+    } catch (err) {
+      status.textContent = "❌ Upload failed: " + err.message;
+      status.style.color = "#ef4444";
+    }
+  }
+
+  async function updateOrder() {
+    if (!currentOrderId) return;
+    const btn = document.getElementById("updateBtn");
+    const errBox = document.getElementById("updateError");
+    errBox.style.display = "none";
+
+    const status = document.getElementById("newStatus").value;
+    const seller_notes = document.getElementById("sellerNotes").value.trim();
+    const cashback_proof_url = document.getElementById("proofUrl").value.trim();
+
+    if (!status && !seller_notes && !cashback_proof_url) {
+      errBox.textContent = "Please make at least one change before saving.";
+      errBox.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    const auth = HH.getAuthBody("seller");
+    const body = { ...auth, order_id: currentOrderId };
+    if (status)              body.status = status;
+    if (seller_notes)        body.seller_notes = seller_notes;
+    if (cashback_proof_url)  body.cashback_proof_url = cashback_proof_url;
+
+    const res = await HH.post("updateOrderStatus", body);
+
+    btn.disabled = false;
+    btn.textContent = "Save Changes";
+
+    if (res.success) {
+      HH.toast("Order updated successfully", "success");
+      closeModal();
+      await loadOrders();
+    } else {
+      errBox.textContent = res.error || "Update failed";
+      errBox.style.display = "block";
+    }
+  }
+
+  // Keyboard close
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+  function logout() {
+    HH.clearSession("seller");
+    window.location.href = "seller-login.html";
+  }
+</script>
+</body>
+</html>

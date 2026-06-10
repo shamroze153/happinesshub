@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happiness Hub — Cashback Deals</title>
+  <meta name="description" content="Browse exclusive cashback deals. Buy through our links and earn real money back.">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* ── PAGE-SPECIFIC ── */
+    .products-section { padding: 48px 0; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+    .section-title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+    }
+    .hero-stat-num {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .hero-stat-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .track-banner {
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-elevated));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin: 48px 0;
+      flex-wrap: wrap;
+    }
+    .track-banner-text h3 { color: var(--text-primary); margin-bottom: 4px; }
+    .track-banner-text p  { font-size: 14px; color: var(--text-secondary); }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .no-results .icon { font-size: 48px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVBAR ── -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <div class="navbar-inner">
+    <a href="index.html" class="navbar-logo" aria-label="Happiness Hub home">
+      <div class="logo-icon">😊</div>
+      Happiness<span>Hub</span>
+    </a>
+    <div class="navbar-links">
+      <a href="index.html" class="active">Deals</a>
+      <a href="track.html">Track Order</a>
+      <a href="agent-login.html">Agent</a>
+      <a href="seller-login.html" class="hide-mobile">Seller</a>
+    </div>
+    <a href="track.html" class="btn-primary btn-sm hide-mobile">
+      📦 Track Order
+    </a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero" id="hero">
+  <div class="hero-eyebrow">✨ Real Cashback — Real Money Back</div>
+  <h1 class="hero-title" id="heroTitle">Earn Cashback On Every Purchase</h1>
+  <p class="hero-subtitle" id="heroSubtitle">Browse exclusive deals, buy through our links, and get your money back automatically.</p>
+
+  <!-- Search -->
+  <div class="search-bar" role="search">
+    <input
+      type="search"
+      id="searchInput"
+      placeholder="Search deals, categories, products..."
+      autocomplete="off"
+      aria-label="Search deals"
+    >
+    <span class="search-bar-icon" aria-hidden="true">🔍</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="hero-stats" id="heroStats" aria-label="Platform statistics">
+    <div>
+      <div class="hero-stat-num" id="statProducts">—</div>
+      <div class="hero-stat-label">Active Deals</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">$5–$50</div>
+      <div class="hero-stat-label">Cashback Range</div>
+    </div>
+    <div>
+      <div class="hero-stat-num">24h</div>
+      <div class="hero-stat-label">Avg. Processing</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CATEGORIES ── -->
+<div class="container">
+  <div class="category-chips" id="categoryChips" role="group" aria-label="Filter by category">
+    <button class="chip active" data-cat="all" onclick="filterCategory('all')">🛍️ All Deals</button>
+    <!-- More chips injected by JS -->
+  </div>
+</div>
+
+<!-- ── PRODUCTS ── -->
+<section class="products-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">
+        <span id="sectionLabel">🔥 Trending Deals</span>
+      </h2>
+      <span id="productCount" style="color:var(--text-muted);font-size:14px;"></span>
+    </div>
+    <div id="productsGrid" class="products-grid" aria-label="Product listings">
+      <!-- Products injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ── TRACK BANNER ── -->
+<div class="container">
+  <div class="track-banner">
+    <div class="track-banner-text">
+      <h3>Already placed an order?</h3>
+      <p>Track your cashback status using your WhatsApp number or order ID.</p>
+    </div>
+    <a href="track.html" class="btn-primary">📦 Track My Order</a>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <div class="container">
+    <p>© <span id="year"></span> Happiness Hub — Earn real cashback on every purchase.</p>
+    <p style="margin-top:8px;">
+      <a href="track.html">Track Order</a> ·
+      <a href="agent-login.html">Agent Login</a> ·
+      <a href="seller-login.html">Seller Login</a> ·
+      <a href="admin/index.html">Admin</a>
+    </p>
+  </div>
+</footer>
+
+<script src="lib/hh.js"></script>
+<script>
+  // ── STATE ──────────────────────────────────────────────────
+  let allProducts = [];
+  let activeCategory = "all";
+  let searchQuery = "";
+  let searchTimeout;
+
+  // ── INIT ───────────────────────────────────────────────────
+  document.addEventListener("DOMContentLoaded", async () => {
+    document.getElementById("year").textContent = new Date().getFullYear();
+    HH.captureRef(); // capture ?ref=agentXX
+
+    await loadSettings();
+    await loadProducts();
+    initSearch();
+  });
+
+  async function loadSettings() {
+    try {
+      const res = await HH.get("getSettings");
+      if (res.success && res.settings) {
+        const s = res.settings;
+        if (s.hero_title) document.getElementById("heroTitle").textContent = s.hero_title;
+        if (s.hero_subtitle) document.getElementById("heroSubtitle").textContent = s.hero_subtitle;
+        if (s.site_name) document.title = s.site_name + " — Cashback Deals";
+      }
+    } catch (_) {} // Non-fatal
+  }
+
+  async function loadProducts(cat = "all", q = "") {
+    const grid = document.getElementById("productsGrid");
+    HH.showLoader("productsGrid");
+
+    const params = {};
+    if (cat && cat !== "all") params.category = cat;
+    if (q) params.q = q;
+
+    const res = await HH.get("getProducts", params);
+
+    if (!res.success) {
+      HH.showError("productsGrid", res.error || "Failed to load products");
+      return;
+    }
+
+    allProducts = res.products || [];
+    renderCategories(res.categories || []);
+    renderProducts(allProducts);
+    document.getElementById("statProducts").textContent = res.total || 0;
+    document.getElementById("productCount").textContent =
+      res.total ? `${res.total} deal${res.total !== 1 ? "s" : ""}` : "";
+
+    const label = cat !== "all" ? `🛍️ ${cat}` : q ? `🔍 Results for "${q}"` : "🔥 Trending Deals";
+    document.getElementById("sectionLabel").textContent = label;
+  }
+
+  function renderCategories(categories) {
+    const container = document.getElementById("categoryChips");
+    const categoryIcons = {
+      Electronics: "💻", Fashion: "👗", Beauty: "💄", Home: "🏠",
+      Sports: "⚽", Books: "📚", Toys: "🧸", Food: "🍕",
+      Health: "💊", Travel: "✈️", Auto: "🚗", Pet: "🐾",
+    };
+    const existing = new Set(["all"]);
+    const chips = [`<button class="chip ${activeCategory === "all" ? "active" : ""}"
+      data-cat="all" onclick="filterCategory('all')">🛍️ All Deals</button>`];
+
+    categories.forEach(cat => {
+      if (existing.has(cat)) return;
+      existing.add(cat);
+      const icon = categoryIcons[cat] || "🏷️";
+      const active = activeCategory === cat ? "active" : "";
+      chips.push(`<button class="chip ${active}" data-cat="${HH.escapeHtml(cat)}"
+        onclick="filterCategory('${HH.escapeHtml(cat)}')">${icon} ${HH.escapeHtml(cat)}</button>`);
+    });
+
+    container.innerHTML = chips.join("");
+  }
+
+  function renderProducts(products) {
+    const grid = document.getElementById("productsGrid");
+    if (!products.length) {
+      grid.innerHTML = `
+        <div class="no-results" style="grid-column:1/-1;">
+          <div class="icon">🔎</div>
+          <h3>No deals found</h3>
+          <p>Try a different category or search term.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = products.map((p, i) => productCard(p, i)).join("");
+  }
+
+  function productCard(p, index) {
+    const delay = Math.min(index * 50, 400);
+    const featured = p.featured === true || p.featured === "TRUE";
+    const badge = p.badge_text ? `<div class="product-card-badge">${HH.escapeHtml(p.badge_text)}</div>` : "";
+    const stock = p.stock_status === "Limited"
+      ? `<span style="color:var(--accent-amber);font-size:12px;">⚡ Limited Stock</span>`
+      : p.stock_status === "Out"
+      ? `<span style="color:var(--accent);font-size:12px;">❌ Out of Stock</span>`
+      : "";
+
+    const imgFallback = `https://placehold.co/480x270/1E1E2A/6C63FF?text=${encodeURIComponent(p.title || "Product")}`;
+
+    return `
+      <article class="product-card ${featured ? "product-card-featured" : ""} fade-in"
+        style="animation-delay:${delay}ms"
+        onclick="goProduct('${HH.escapeHtml(p.product_id)}')"
+        aria-label="${HH.escapeHtml(p.title)}"
+        role="button" tabindex="0"
+        onkeydown="if(event.key==='Enter')goProduct('${HH.escapeHtml(p.product_id)}')">
+        ${badge}
+        <img
+          class="product-card-img"
+          src="${HH.escapeHtml(p.image_url) || imgFallback}"
+          alt="${HH.escapeHtml(p.title)}"
+          loading="lazy"
+          onerror="this.src='${imgFallback}'"
+        >
+        <div class="product-card-body">
+          <div class="product-card-title">${HH.escapeHtml(p.title)}</div>
+          ${p.policy ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${HH.escapeHtml(p.policy)}</div>` : ""}
+          ${stock}
+          <div class="product-card-meta">
+            <div class="cashback-pill">
+              💸 ${HH.formatCashback(p.cashback_amount)} cashback
+            </div>
+            <span class="product-card-seller">${HH.escapeHtml(p.sold_by || "")}</span>
+          </div>
+          ${p.deadline ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;">⏳ Ends ${HH.escapeHtml(p.deadline)}</div>` : ""}
+        </div>
+      </article>`;
+  }
+
+  // ── NAVIGATION ─────────────────────────────────────────────
+  function goProduct(id) {
+    window.location.href = `product.html?id=${encodeURIComponent(id)}`;
+  }
+
+  // ── FILTER / SEARCH ────────────────────────────────────────
+  function filterCategory(cat) {
+    activeCategory = cat;
+    document.querySelectorAll(".chip").forEach(c => {
+      c.classList.toggle("active", c.dataset.cat === cat);
+    });
+    loadProducts(cat, searchQuery);
+  }
+
+  function initSearch() {
+    const input = document.getElementById("searchInput");
+    input.addEventListener("input", () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        searchQuery = input.value.trim();
+        loadProducts(activeCategory, searchQuery);
+      }, 350);
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        clearTimeout(searchTimeout);
+        searchQuery = input.value.trim();
+        loadProducts(activeCategory, searchQuery);
+      }
+    });
+  }
+</script>
+</body>
+</html>

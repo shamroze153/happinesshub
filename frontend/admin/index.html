@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Happiness Hub</title>
+  <link rel="stylesheet" href="../styles/main.css">
+  <style>
+    /* ── LAYOUT ── */
+    .admin-layout { display: flex; min-height: calc(100vh - 60px); }
+    .admin-sidebar {
+      width: 220px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 16px 10px;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .admin-main { flex: 1; padding: 28px; overflow: hidden; min-width: 0; }
+    @media (max-width: 768px) { .admin-sidebar { display: none; } .admin-main { padding: 16px; } }
+
+    /* ── SIDEBAR ── */
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; border-radius: var(--radius-md);
+      color: var(--text-secondary); font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none; background: none; width: 100%;
+      text-align: left; transition: all 0.2s; font-family: var(--font-body);
+    }
+    .nav-item:hover  { background: var(--bg-elevated); color: var(--text-primary); }
+    .nav-item.active { background: var(--primary-glow); color: var(--primary-light); }
+    .nav-section-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; padding: 12px 12px 4px; }
+
+    /* ── PANELS ── */
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.3s ease; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .panel-title { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; }
+
+    /* ── STATS ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── TABLES ── */
+    .toolbar { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+    .toolbar-search { flex: 1; min-width: 180px; position: relative; }
+    .toolbar-search input { width: 100%; padding-left: 36px; }
+    .tsearch-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+    /* ── MODAL / FORM ── */
+    .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 500px) { .form-row-2 { grid-template-columns: 1fr; } }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-child { border: none; }
+    .toggle-label { font-size: 14px; color: var(--text-primary); }
+    .toggle-desc { font-size: 12px; color: var(--text-muted); }
+    input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+
+    /* Chart */
+    .chart-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 24px; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding-top: 8px; }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .chart-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--primary); min-height: 4px; transition: height 0.5s ease; }
+    .chart-bar-label { font-size: 10px; color: var(--text-muted); }
+
+    .badge-active   { background:rgba(34,197,94,0.15);color:#22c55e; }
+    .badge-disabled { background:rgba(239,68,68,0.15);color:#ef4444; }
+
+    /* Product image preview in table */
+    .tbl-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--bg-elevated); }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" style="height:60px;">
+  <div class="navbar-inner">
+    <a href="../index.html" class="navbar-logo">
+      <div class="logo-icon">😊</div>
+      Happiness<span>Hub</span>
+      <span style="font-size:11px;background:var(--primary-glow);color:var(--primary-light);padding:2px 8px;border-radius:50px;margin-left:4px;">ADMIN</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="../index.html" class="btn-secondary btn-sm" target="_blank">🌐 View Site</a>
+      <button onclick="logout()" class="btn-secondary btn-sm">Sign Out</button>
+    </div>
+  </div>
+</nav>
+
+<div class="admin-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="nav-section-label">Overview</div>
+    <button class="nav-item active" id="nav-overview" onclick="switchPanel('overview')">📊 Dashboard</button>
+
+    <div class="nav-section-label">Catalog</div>
+    <button class="nav-item" id="nav-products" onclick="switchPanel('products')">🏷️ Products</button>
+
+    <div class="nav-section-label">Users</div>
+    <button class="nav-item" id="nav-agents" onclick="switchPanel('agents')">👥 Agents</button>
+    <button class="nav-item" id="nav-sellers" onclick="switchPanel('sellers')">🏪 Sellers</button>
+
+    <div class="nav-section-label">Operations</div>
+    <button class="nav-item" id="nav-orders" onclick="switchPanel('orders')">📋 All Orders</button>
+
+    <div class="nav-section-label" style="margin-top:auto;"></div>
+    <button class="nav-item" onclick="window.open('../index.html','_blank')">🌐 View Site</button>
+    <button class="nav-item" style="color:#ef4444;" onclick="logout()">🚪 Sign Out</button>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="admin-main">
+
+    <!-- ───── OVERVIEW PANEL ───── -->
+    <div class="panel active" id="panel-overview">
+      <div class="panel-header">
+        <h2 class="panel-title">📊 Dashboard Overview</h2>
+        <button onclick="loadDashboard()" class="btn-secondary btn-sm">🔄 Refresh</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">🏷️</div><div><div class="stat-value" id="ovProducts">—</div><div class="stat-label">Active Products</div></div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-value" id="ovOrders">—</div><div class="stat-label">Total Orders</div></div></div>
+        <div class="stat-card"><div class="stat-icon">☀️</div><div><div class="stat-value" id="ovToday">—</div><div class="stat-label">Today's Orders</div></div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-value" id="ovPending">—</div><div class="stat-label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-value" id="ovCashback">—</div><div class="stat-label">Cashback Sent</div></div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div><div class="stat-value" id="ovCashbackAmt">—</div><div class="stat-label">Total Cashback ($)</div></div></div>
+        <div class="stat-card"><div class="stat-icon">👥</div><div><div class="stat-value" id="ovAgents">—</div><div class="stat-label">Active Agents</div></div></div>
+        <div class="stat-card"><div class="stat-icon">🏪</div><div><div class="stat-value" id="ovSellers">—</div><div class="stat-label">Sellers</div></div></div>
+      </div>
+
+      <div class="chart-wrap">
+        <h3 style="font-size:15px;margin-bottom:16px;">Recent Orders (Last 7 Days)</h3>
+        <div class="chart-bars" id="ordersChart"></div>
+      </div>
+
+      <div>
+        <h3 style="font-size:15px;margin-bottom:14px;color:var(--text-secondary);">Recent Orders</h3>
+        <div class="table-container" id="recentOrdersTable"></div>
+      </div>
+    </div>
+
+    <!-- ───── PRODUCTS PANEL ───── -->
+    <div class="panel" id="panel-products">
+      <div class="panel-header">
+        <h2 class="panel-title">🏷️ Products</h2>
+        <button onclick="openProductForm()" class="btn-primary">+ Add Product</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <span class="tsearch-icon">🔍</span>
+          <input type="text" class="form-control" id="productSearch" placeholder="Search products..." oninput="filterProducts()">
+        </div>
+        <select class="form-control" id="productStatusFilter" onchange="filterProducts()" style="max-width:150px;">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Disabled">Disabled</option>
+        </select>
+        <button onclick="loadProducts()" class="btn-secondary btn-sm">🔄 Refresh</button>
+      </div>
+
+      <div class="table-container" id="productsTable">
+        <div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>
+      </div>
+    </div>
+
+    <!-- ───── AGENTS PANEL ───── -->
+    <div class="panel" id="panel-agents">
+      <div class="panel-header">
+        <h2 class="panel-title">👥 Agents</h2>
+        <button onclick="openAgentForm()" class="btn-primary">+ Add Agent</button>
+      </div>
+      <div class="table-container" id="agentsTable">
+        <div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>
+      </div>
+    </div>
+
+    <!-- ───── SELLERS PANEL ───── -->
+    <div class="panel" id="panel-sellers">
+      <div class="panel-header">
+        <h2 class="panel-title">🏪 Sellers</h2>
+        <button onclick="openSellerForm()" class="btn-primary">+ Add Seller</button>
+      </div>
+      <div class="table-container" id="sellersTable">
+        <div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>
+      </div>
+    </div>
+
+    <!-- ───── ORDERS PANEL ───── -->
+    <div class="panel" id="panel-orders">
+      <div class="panel-header">
+        <h2 class="panel-title">📋 All Orders</h2>
+        <button onclick="loadAllOrders()" class="btn-secondary btn-sm">🔄 Refresh</button>
+      </div>
+      <div class="toolbar">
+        <div class="toolbar-search">
+          <span class="tsearch-icon">🔍</span>
+          <input type="text" class="form-control" id="orderSearch" placeholder="Search orders..." oninput="filterAllOrders()">
+        </div>
+        <select class="form-control" id="orderStatusFilter" onchange="filterAllOrders()" style="max-width:160px;">
+          <option value="">All Statuses</option>
+          <option>Pending</option><option>Ordered</option><option>Delivered</option>
+          <option>Cashback Sent</option><option>Rejected</option>
+          <option>Need More Info</option><option>PayPal Issue</option>
+        </select>
+      </div>
+      <div class="table-container" id="allOrdersTable">
+        <div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ─── PRODUCT FORM MODAL ─── -->
+<div class="modal-overlay" id="productModal" style="display:none;" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <h3 id="productModalTitle">Add Product</h3>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+    </div>
+    <form id="productForm" novalidate>
+      <input type="hidden" id="editProductId">
+
+      <div class="form-row-2">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Product Title *</label>
+          <input type="text" id="pTitle" class="form-control" placeholder="e.g. Wireless Earbuds Pro" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Product Link *</label>
+          <input type="url" id="pLink" class="form-control" placeholder="https://amazon.com/..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cashback Amount ($) *</label>
+          <input type="number" id="pCashback" class="form-control" placeholder="15.00" min="0" step="0.01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Image URL</label>
+          <input type="url" id="pImage" class="form-control" placeholder="https://..." oninput="previewProductImg()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sold By</label>
+          <input type="text" id="pSoldBy" class="form-control" placeholder="Store name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <input type="text" id="pCategory" class="form-control" placeholder="Electronics, Fashion..." required list="categoryList">
+          <datalist id="categoryList">
+            <option value="Electronics"><option value="Fashion"><option value="Beauty">
+            <option value="Home"><option value="Sports"><option value="Books">
+            <option value="Toys"><option value="Food"><option value="Health">
+          </datalist>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Policy</label>
+          <input type="text" id="pPolicy" class="form-control" placeholder="e.g. Full cashback after 7-day delivery">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Description</label>
+          <textarea id="pDesc" class="form-control" rows="2" placeholder="Optional product description..."></textarea>
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label class="form-label">Instructions (How to claim cashback)</label>
+          <textarea id="pInstructions" class="form-control" rows="2" placeholder="Step-by-step instructions..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input type="text" id="pDeadline" class="form-control" placeholder="e.g. Dec 31, 2025">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Badge Text</label>
+          <input type="text" id="pBadge" class="form-control" placeholder="HOT / NEW / LIMITED">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tags (comma-separated)</label>
+          <input type="text" id="pTags" class="form-control" placeholder="wireless, gaming, sale">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Status</label>
+          <select id="pStock" class="form-control">
+            <option value="Available">Available</option>
+            <option value="Limited">Limited</option>
+            <option value="Out">Out of Stock</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select id="pStatus" class="form-control">
+            <option value="Active">Active</option>
+            <option value="Disabled">Disabled</option>
+          </select>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:12px;padding-top:8px;">
+          <input type="checkbox" id="pFeatured" style="width:18px;height:18px;accent-color:var(--primary);">
+          <label for="pFeatured" style="font-size:14px;color:var(--text-primary);cursor:pointer;">⭐ Feature this product (shows first)</label>
+        </div>
+      </div>
+
+      <div id="pImgPreview" style="display:none;margin:8px 0;">
+        <img id="pImgPreviewEl" style="max-height:100px;border-radius:8px;">
+      </div>
+
+      <div id="productFormError" style="display:none;color:#ef4444;font-size:14px;margin-bottom:12px;padding:10px;background:rgba(239,68,68,0.1);border-radius:8px;"></div>
+
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <button type="submit" class="btn-primary" id="productSubmitBtn">Add Product</button>
+        <button type="button" onclick="closeProductModal()" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── AGENT FORM MODAL ─── -->
+<div class="modal-overlay" id="agentModal" style="display:none;" onclick="if(event.target===this)closeAgentModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Agent</h3>
+      <button class="modal-close" onclick="closeAgentModal()">✕</button>
+    </div>
+    <form id="agentForm" novalidate>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Agent ID *</label>
+          <input type="text" id="aId" class="form-control" placeholder="e.g. agent01" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="aName" class="form-control" placeholder="Agent name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" id="aPassword" class="form-control" placeholder="Set password" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Commission Rate (%)</label>
+          <input type="number" id="aCommission" class="form-control" placeholder="0" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="aEmail" class="form-control" placeholder="agent@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="tel" id="aWhatsapp" class="form-control" placeholder="+123456789">
+        </div>
+      </div>
+      <div id="agentFormError" style="display:none;color:#ef4444;font-size:14px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:12px;">
+        <button type="submit" class="btn-primary" id="agentSubmitBtn">Add Agent</button>
+        <button type="button" onclick="closeAgentModal()" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ─── SELLER FORM MODAL ─── -->
+<div class="modal-overlay" id="sellerModal" style="display:none;" onclick="if(event.target===this)closeSellerModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Seller</h3>
+      <button class="modal-close" onclick="closeSellerModal()">✕</button>
+    </div>
+    <form id="sellerForm" novalidate>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="sName" class="form-control" placeholder="Seller name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Store Name</label>
+          <input type="text" id="sStore" class="form-control" placeholder="Store or brand name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input type="password" id="sPassword" class="form-control" placeholder="Set password" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" id="sEmail" class="form-control" placeholder="seller@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="tel" id="sWhatsapp" class="form-control" placeholder="+123456789">
+        </div>
+      </div>
+      <div id="sellerFormError" style="display:none;color:#ef4444;font-size:14px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:12px;">
+        <button type="submit" class="btn-primary" id="sellerSubmitBtn">Add Seller</button>
+        <button type="button" onclick="closeSellerModal()" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../lib/hh.js"></script>
+<script>
+  let session = null;
+  let allProducts = [], allAgents = [], allSellers = [], allOrders = [];
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    session = HH.requireAuth("admin", "login.html");
+    if (!session) return;
+    await loadDashboard();
+  });
+
+  // ── PANEL SWITCHING ──────────────────────────────────────────
+  const PANELS = ["overview","products","agents","sellers","orders"];
+  function switchPanel(name) {
+    PANELS.forEach(p => {
+      document.getElementById(`panel-${p}`).classList.toggle("active", p === name);
+      document.getElementById(`nav-${p}`)?.classList.toggle("active", p === name);
+    });
+    // Lazy-load data
+    if (name === "products" && !allProducts.length) loadProducts();
+    if (name === "agents"   && !allAgents.length)   loadAgents();
+    if (name === "sellers"  && !allSellers.length)  loadSellers();
+    if (name === "orders"   && !allOrders.length)   loadAllOrders();
+  }
+
+  // ── DASHBOARD ────────────────────────────────────────────────
+  async function loadDashboard() {
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("getAdminDashboard", auth);
+    if (!res.success) { HH.toast(res.error || "Failed to load", "error"); return; }
+
+    const s = res.stats;
+    document.getElementById("ovProducts").textContent    = s.total_products;
+    document.getElementById("ovOrders").textContent      = s.total_orders;
+    document.getElementById("ovToday").textContent       = s.today_orders;
+    document.getElementById("ovPending").textContent     = s.pending_orders;
+    document.getElementById("ovCashback").textContent    = s.cashback_sent;
+    document.getElementById("ovCashbackAmt").textContent = HH.formatCashback(s.total_cashback_sent);
+    document.getElementById("ovAgents").textContent      = s.total_agents;
+    document.getElementById("ovSellers").textContent     = s.total_sellers;
+
+    renderRecentOrders(res.recent_orders || []);
+    renderChart(res.recent_orders || []);
+  }
+
+  function renderChart(orders) {
+    const chart = document.getElementById("ordersChart");
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push({ label: d.toLocaleDateString("en", { weekday: "short" }), date: d.toDateString() });
+    }
+    const counts = days.map(d => orders.filter(o => new Date(o.submitted_at).toDateString() === d.date).length);
+    const max = Math.max(...counts, 1);
+    chart.innerHTML = days.map((d, i) => `
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="height:${Math.max(4, (counts[i]/max)*100)}px;" title="${counts[i]} orders"></div>
+        <div class="chart-bar-label">${d.label}</div>
+      </div>`).join("");
+  }
+
+  function renderRecentOrders(orders) {
+    if (!orders.length) {
+      document.getElementById("recentOrdersTable").innerHTML = `<div style="padding:32px;text-align:center;color:var(--text-secondary);">No orders yet.</div>`;
+      return;
+    }
+    document.getElementById("recentOrdersTable").innerHTML = `
+      <table>
+        <thead><tr><th>Buyer</th><th>Product</th><th>Cashback</th><th>Status</th><th>Time</th></tr></thead>
+        <tbody>${orders.slice(0,10).map(o => `
+          <tr>
+            <td><div style="font-weight:500;">${HH.escapeHtml(o.buyer_name)}</div><div style="font-size:11px;color:var(--text-muted);">${HH.escapeHtml(o.buyer_whatsapp)}</div></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${HH.escapeHtml(o.product_title)}</td>
+            <td style="color:var(--primary-light);font-weight:600;">${HH.formatCashback(o.cashback_amount)}</td>
+            <td>${HH.statusBadge(o.status)}</td>
+            <td style="font-size:12px;color:var(--text-muted);">${HH.timeAgo(o.submitted_at)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── PRODUCTS ────────────────────────────────────────────────
+  async function loadProducts() {
+    document.getElementById("productsTable").innerHTML = `<div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+    const auth = HH.getAuthBody("admin");
+    // Get all products including disabled — use admin endpoint
+    const res = await HH.get("getProducts", { all: "true" });
+    if (!res.success) { HH.toast(res.error, "error"); return; }
+    allProducts = res.products || [];
+    renderProductsTable(allProducts);
+  }
+
+  function filterProducts() {
+    const q = (document.getElementById("productSearch").value || "").toLowerCase();
+    const status = document.getElementById("productStatusFilter").value;
+    let f = allProducts;
+    if (status) f = f.filter(p => p.status === status);
+    if (q) f = f.filter(p => (p.title||"").toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q));
+    renderProductsTable(f);
+  }
+
+  function renderProductsTable(products) {
+    if (!products.length) {
+      document.getElementById("productsTable").innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-secondary);">No products found. <button onclick="openProductForm()" class="btn-primary btn-sm" style="margin-left:12px;">Add First Product</button></div>`;
+      return;
+    }
+    document.getElementById("productsTable").innerHTML = `
+      <table>
+        <thead><tr><th>Image</th><th>Title</th><th>Category</th><th>Cashback</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${products.map(p => `
+          <tr>
+            <td><img class="tbl-thumb" src="${HH.escapeHtml(p.image_url)||'https://placehold.co/40x40/1E1E2A/6C63FF?text=P'}" alt="" onerror="this.src='https://placehold.co/40x40/1E1E2A/6C63FF?text=P'"></td>
+            <td>
+              <div style="font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${HH.escapeHtml(p.title)}</div>
+              ${p.featured==="TRUE"||p.featured===true ? '<div style="font-size:11px;color:var(--accent-amber);">⭐ Featured</div>' : ''}
+            </td>
+            <td><span class="badge badge-pending">${HH.escapeHtml(p.category)}</span></td>
+            <td style="color:var(--primary-light);font-weight:600;">${HH.formatCashback(p.cashback_amount)}</td>
+            <td><span class="badge ${p.status==='Active'?'badge-active':'badge-disabled'}">${HH.escapeHtml(p.status||'Active')}</span></td>
+            <td>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button onclick="editProduct('${HH.escapeHtml(p.product_id)}')" class="btn-secondary btn-sm">✏️ Edit</button>
+                <button onclick="toggleProductStatus('${HH.escapeHtml(p.product_id)}','${p.status==='Active'?'Disabled':'Active'}')" class="btn-secondary btn-sm" style="${p.status==='Active'?'color:var(--accent-amber)':'color:var(--accent-green)'}">
+                  ${p.status==='Active' ? '🚫 Disable' : '✅ Enable'}
+                </button>
+                <button onclick="deleteProduct('${HH.escapeHtml(p.product_id)}','${HH.escapeHtml(p.title)}')" class="btn-secondary btn-sm btn-danger">🗑️</button>
+              </div>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── PRODUCT FORM ─────────────────────────────────────────────
+  function openProductForm(product = null) {
+    document.getElementById("productForm").reset();
+    document.getElementById("editProductId").value = "";
+    document.getElementById("productModalTitle").textContent = "Add Product";
+    document.getElementById("productSubmitBtn").textContent = "Add Product";
+    document.getElementById("productFormError").style.display = "none";
+    document.getElementById("pImgPreview").style.display = "none";
+
+    if (product) {
+      document.getElementById("productModalTitle").textContent = "Edit Product";
+      document.getElementById("productSubmitBtn").textContent = "Save Changes";
+      document.getElementById("editProductId").value = product.product_id;
+      document.getElementById("pTitle").value = product.title || "";
+      document.getElementById("pLink").value = product.link || "";
+      document.getElementById("pCashback").value = product.cashback_amount || "";
+      document.getElementById("pImage").value = product.image_url || "";
+      document.getElementById("pSoldBy").value = product.sold_by || "";
+      document.getElementById("pCategory").value = product.category || "";
+      document.getElementById("pPolicy").value = product.policy || "";
+      document.getElementById("pDesc").value = product.description || "";
+      document.getElementById("pInstructions").value = product.instructions || "";
+      document.getElementById("pDeadline").value = product.deadline || "";
+      document.getElementById("pBadge").value = product.badge_text || "";
+      document.getElementById("pTags").value = product.tags || "";
+      document.getElementById("pStock").value = product.stock_status || "Available";
+      document.getElementById("pStatus").value = product.status || "Active";
+      document.getElementById("pFeatured").checked = product.featured === "TRUE" || product.featured === true;
+      previewProductImg();
+    }
+
+    document.getElementById("productModal").style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+
+  function previewProductImg() {
+    const url = document.getElementById("pImage").value.trim();
+    const wrap = document.getElementById("pImgPreview");
+    const img = document.getElementById("pImgPreviewEl");
+    if (url) { img.src = url; wrap.style.display = "block"; } else { wrap.style.display = "none"; }
+  }
+
+  function closeProductModal() {
+    document.getElementById("productModal").style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  function editProduct(id) {
+    const p = allProducts.find(p => p.product_id === id);
+    if (p) openProductForm(p);
+  }
+
+  async function toggleProductStatus(id, newStatus) {
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("updateProduct", { ...auth, product_id: id, status: newStatus });
+    if (res.success) { HH.toast(`Product ${newStatus === "Active" ? "enabled" : "disabled"}`, "success"); loadProducts(); }
+    else HH.toast(res.error || "Update failed", "error");
+  }
+
+  async function deleteProduct(id, title) {
+    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("deleteProduct", { ...auth, product_id: id });
+    if (res.success) { HH.toast("Product deleted", "success"); loadProducts(); }
+    else HH.toast(res.error || "Delete failed", "error");
+  }
+
+  document.getElementById("productForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("productSubmitBtn");
+    const errBox = document.getElementById("productFormError");
+    errBox.style.display = "none";
+
+    const editId = document.getElementById("editProductId").value;
+    const isEdit = !!editId;
+    const auth = HH.getAuthBody("admin");
+
+    const body = {
+      ...auth,
+      title: document.getElementById("pTitle").value.trim(),
+      link: document.getElementById("pLink").value.trim(),
+      cashback_amount: document.getElementById("pCashback").value,
+      image_url: document.getElementById("pImage").value.trim(),
+      sold_by: document.getElementById("pSoldBy").value.trim(),
+      category: document.getElementById("pCategory").value.trim(),
+      policy: document.getElementById("pPolicy").value.trim(),
+      description: document.getElementById("pDesc").value.trim(),
+      instructions: document.getElementById("pInstructions").value.trim(),
+      deadline: document.getElementById("pDeadline").value.trim(),
+      badge_text: document.getElementById("pBadge").value.trim(),
+      tags: document.getElementById("pTags").value.trim(),
+      stock_status: document.getElementById("pStock").value,
+      status: document.getElementById("pStatus").value,
+      featured: document.getElementById("pFeatured").checked ? "TRUE" : "FALSE",
+    };
+
+    if (!body.title || !body.link || !body.cashback_amount || !body.category) {
+      errBox.textContent = "Please fill in all required fields (Title, Link, Cashback, Category).";
+      errBox.style.display = "block";
+      return;
+    }
+
+    if (isEdit) body.product_id = editId;
+
+    btn.disabled = true;
+    btn.textContent = isEdit ? "Saving..." : "Adding...";
+
+    const action = isEdit ? "updateProduct" : "addProduct";
+    const res = await HH.post(action, body);
+
+    btn.disabled = false;
+    btn.textContent = isEdit ? "Save Changes" : "Add Product";
+
+    if (res.success) {
+      HH.toast(isEdit ? "Product updated!" : "Product added!", "success");
+      closeProductModal();
+      loadProducts();
+    } else {
+      errBox.textContent = res.error || "Failed";
+      errBox.style.display = "block";
+    }
+  });
+
+  // ── AGENTS ──────────────────────────────────────────────────
+  async function loadAgents() {
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("getAgents", auth);
+    if (!res.success) { HH.toast(res.error, "error"); return; }
+    allAgents = res.agents || [];
+    renderAgentsTable(allAgents);
+  }
+
+  function renderAgentsTable(agents) {
+    if (!agents.length) {
+      document.getElementById("agentsTable").innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-secondary);">No agents yet. <button onclick="openAgentForm()" class="btn-primary btn-sm" style="margin-left:12px;">Add First Agent</button></div>`;
+      return;
+    }
+    document.getElementById("agentsTable").innerHTML = `
+      <table>
+        <thead><tr><th>Agent ID</th><th>Name</th><th>Commission</th><th>WhatsApp</th><th>Status</th><th>Referral Link</th><th>Actions</th></tr></thead>
+        <tbody>${agents.map(a => `
+          <tr>
+            <td style="font-family:monospace;font-weight:600;color:var(--primary-light);">${HH.escapeHtml(a.agent_id)}</td>
+            <td>${HH.escapeHtml(a.name)}</td>
+            <td>${a.commission_rate || 0}%</td>
+            <td style="font-size:13px;">${HH.escapeHtml(a.whatsapp||'—')}</td>
+            <td><span class="badge ${a.status==='Active'?'badge-active':'badge-disabled'}">${HH.escapeHtml(a.status||'Active')}</span></td>
+            <td>
+              <button onclick="copyText('${location.origin}${location.pathname.replace('admin/index.html','')}?ref=${a.agent_id}')" class="btn-secondary btn-sm">📋 Copy</button>
+            </td>
+            <td>
+              <button onclick="toggleAgentStatus('${HH.escapeHtml(a.agent_id)}','${a.status==='Active'?'Disabled':'Active'}')" class="btn-secondary btn-sm">
+                ${a.status==='Active' ? '🚫 Disable' : '✅ Enable'}
+              </button>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  function openAgentForm() {
+    document.getElementById("agentForm").reset();
+    document.getElementById("agentFormError").style.display = "none";
+    document.getElementById("agentModal").style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+  function closeAgentModal() {
+    document.getElementById("agentModal").style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("agentForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("agentSubmitBtn");
+    const errBox = document.getElementById("agentFormError");
+    errBox.style.display = "none";
+    btn.disabled = true; btn.textContent = "Adding...";
+
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("addAgent", {
+      ...auth,
+      agent_id: document.getElementById("aId").value.trim(),
+      name: document.getElementById("aName").value.trim(),
+      password: document.getElementById("aPassword").value,
+      commission_rate: document.getElementById("aCommission").value || 0,
+      email: document.getElementById("aEmail").value.trim(),
+      whatsapp: document.getElementById("aWhatsapp").value.trim(),
+    });
+
+    btn.disabled = false; btn.textContent = "Add Agent";
+    if (res.success) { HH.toast("Agent added!", "success"); closeAgentModal(); loadAgents(); }
+    else { errBox.textContent = res.error || "Failed"; errBox.style.display = "block"; }
+  });
+
+  async function toggleAgentStatus(id, newStatus) {
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("updateAgent", { ...auth, agent_id: id, status: newStatus });
+    if (res.success) { HH.toast(`Agent ${newStatus === "Active" ? "enabled" : "disabled"}`, "success"); loadAgents(); }
+    else HH.toast(res.error || "Update failed", "error");
+  }
+
+  // ── SELLERS ──────────────────────────────────────────────────
+  async function loadSellers() {
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("getSellers", auth);
+    if (!res.success) { HH.toast(res.error, "error"); return; }
+    allSellers = res.sellers || [];
+    renderSellersTable(allSellers);
+  }
+
+  function renderSellersTable(sellers) {
+    if (!sellers.length) {
+      document.getElementById("sellersTable").innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-secondary);">No sellers yet. <button onclick="openSellerForm()" class="btn-primary btn-sm" style="margin-left:12px;">Add First Seller</button></div>`;
+      return;
+    }
+    document.getElementById("sellersTable").innerHTML = `
+      <table>
+        <thead><tr><th>Seller ID</th><th>Name</th><th>Store</th><th>Email</th><th>Status</th><th>Joined</th></tr></thead>
+        <tbody>${sellers.map(s => `
+          <tr>
+            <td style="font-family:monospace;font-size:12px;color:var(--text-secondary);">${HH.escapeHtml(s.seller_id)}</td>
+            <td style="font-weight:500;">${HH.escapeHtml(s.name)}</td>
+            <td>${HH.escapeHtml(s.store_name||'—')}</td>
+            <td style="font-size:13px;">${HH.escapeHtml(s.email||'—')}</td>
+            <td><span class="badge ${s.status==='Active'?'badge-active':'badge-disabled'}">${HH.escapeHtml(s.status||'Active')}</span></td>
+            <td style="font-size:12px;color:var(--text-muted);">${HH.timeAgo(s.created_at)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  function openSellerForm() {
+    document.getElementById("sellerForm").reset();
+    document.getElementById("sellerFormError").style.display = "none";
+    document.getElementById("sellerModal").style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+  function closeSellerModal() {
+    document.getElementById("sellerModal").style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("sellerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("sellerSubmitBtn");
+    const errBox = document.getElementById("sellerFormError");
+    errBox.style.display = "none";
+    btn.disabled = true; btn.textContent = "Adding...";
+
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("addSeller", {
+      ...auth,
+      name: document.getElementById("sName").value.trim(),
+      store_name: document.getElementById("sStore").value.trim(),
+      password: document.getElementById("sPassword").value,
+      email: document.getElementById("sEmail").value.trim(),
+      whatsapp: document.getElementById("sWhatsapp").value.trim(),
+    });
+
+    btn.disabled = false; btn.textContent = "Add Seller";
+    if (res.success) { HH.toast("Seller added! Their ID: " + res.seller_id, "success"); closeSellerModal(); loadSellers(); }
+    else { errBox.textContent = res.error || "Failed"; errBox.style.display = "block"; }
+  });
+
+  // ── ALL ORDERS ───────────────────────────────────────────────
+  async function loadAllOrders() {
+    document.getElementById("allOrdersTable").innerHTML = `<div style="padding:40px;text-align:center;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+    const auth = HH.getAuthBody("admin");
+    const res = await HH.post("getAllOrders", auth);
+    if (!res.success) { HH.toast(res.error, "error"); return; }
+    allOrders = res.orders || [];
+    filterAllOrders();
+  }
+
+  function filterAllOrders() {
+    const q = (document.getElementById("orderSearch").value || "").toLowerCase();
+    const status = document.getElementById("orderStatusFilter").value;
+    let f = allOrders;
+    if (status) f = f.filter(o => o.status === status);
+    if (q) f = f.filter(o =>
+      (o.buyer_name||"").toLowerCase().includes(q) ||
+      (o.product_title||"").toLowerCase().includes(q) ||
+      (o.order_id||"").toLowerCase().includes(q) ||
+      (o.amazon_order_id||"").toLowerCase().includes(q) ||
+      (o.buyer_whatsapp||"").includes(q) ||
+      (o.agent_id||"").toLowerCase().includes(q)
+    );
+    renderAllOrdersTable(f);
+  }
+
+  function renderAllOrdersTable(orders) {
+    if (!orders.length) {
+      document.getElementById("allOrdersTable").innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-secondary);">No orders found.</div>`;
+      return;
+    }
+    document.getElementById("allOrdersTable").innerHTML = `
+      <table>
+        <thead><tr><th>Order ID</th><th>Buyer</th><th>Product</th><th>Agent</th><th>Cashback</th><th>Status</th><th>Submitted</th></tr></thead>
+        <tbody>${orders.map(o => `
+          <tr>
+            <td style="font-family:monospace;font-size:11px;color:var(--text-secondary);">${HH.escapeHtml(o.order_id)}</td>
+            <td>
+              <div style="font-weight:500;">${HH.escapeHtml(o.buyer_name)}</div>
+              <div style="font-size:11px;color:var(--text-muted);">${HH.escapeHtml(o.buyer_whatsapp)}</div>
+            </td>
+            <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;">${HH.escapeHtml(o.product_title)}</td>
+            <td style="font-size:12px;color:var(--primary-light);">${HH.escapeHtml(o.agent_id||'—')}</td>
+            <td style="color:var(--primary-light);font-weight:600;">${HH.formatCashback(o.cashback_amount)}</td>
+            <td>${HH.statusBadge(o.status)}</td>
+            <td style="font-size:12px;color:var(--text-muted);">${HH.timeAgo(o.submitted_at)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── UTILITIES ────────────────────────────────────────────────
+  function copyText(text) {
+    navigator.clipboard.writeText(text).then(() => HH.toast("Copied to clipboard!", "success"));
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      closeProductModal(); closeAgentModal(); closeSellerModal();
+    }
+  });
+
+  function logout() {
+    HH.clearSession("admin");
+    window.location.href = "login.html";
+  }
+</script>
+</body>
+</html>
