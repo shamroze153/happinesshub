@@ -3,76 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login — Happiness Hub</title>
+  <title>Admin — Happiness Hub</title>
   <link rel="stylesheet" href="../styles/main.css">
   <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: var(--bg); }
-    .login-card { width: 100%; max-width: 380px; animation: slideUp 0.4s ease; }
-    .logo-wrap { text-align: center; margin-bottom: 32px; }
-    .logo-icon-admin { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 14px; }
-    .code-input { text-align: center; font-size: 2rem; font-weight: 800; letter-spacing: 12px; font-family: monospace; }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .login-card { width: 100%; max-width: 360px; text-align: center; animation: slideUp 0.4s ease; }
+    .logo-icon-admin { width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 20px; }
   </style>
 </head>
 <body>
 <div class="login-card card">
-  <div class="logo-wrap">
-    <div class="logo-icon-admin">⚙️</div>
-    <h2>Admin Access</h2>
-    <p style="font-size:14px;color:var(--text-muted);margin-top:6px;">Enter your access code</p>
-  </div>
-
-  <form id="loginForm" novalidate>
-    <div class="form-group">
-      <label class="form-label" style="text-align:center;display:block;">Access Code</label>
-      <input type="password" id="codeInput" class="form-control code-input" placeholder="●●●●●●●" maxlength="10" autocomplete="off" required>
-    </div>
-    <div id="loginError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-md);padding:12px 14px;font-size:14px;color:#ef4444;margin-bottom:16px;text-align:center;"></div>
-    <button type="submit" class="btn-primary w-full" id="loginBtn" style="font-size:16px;padding:14px;">Enter Dashboard</button>
-  </form>
-  <div style="text-align:center;margin-top:20px;">
+  <div class="logo-icon-admin">⚙️</div>
+  <h2 style="margin-bottom:8px;">Happiness Hub</h2>
+  <p style="margin-bottom:28px;font-size:14px;">Admin Dashboard</p>
+  <button onclick="enterDashboard()" class="btn-primary w-full" style="font-size:16px;padding:16px;" id="enterBtn">
+    Enter Dashboard →
+  </button>
+  <div style="margin-top:16px;">
     <a href="../index.html" style="font-size:13px;color:var(--text-muted);">← Back to Site</a>
   </div>
 </div>
 
 <script src="../lib/hh.js"></script>
 <script>
+  // If already logged in go straight to dashboard
   if (HH.getSession("admin")) window.location.href = "index.html";
 
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("loginBtn");
-    const errBox = document.getElementById("loginError");
-    errBox.style.display = "none";
-
-    const code = document.getElementById("codeInput").value.trim();
-    if (!code) { showErr("Please enter your access code."); return; }
-
+  function enterDashboard() {
+    const btn = document.getElementById("enterBtn");
+    btn.textContent = "Loading...";
     btn.disabled = true;
-    btn.textContent = "Verifying...";
-
-    const res = await HH.get("adminLogin", { code });
-
-    btn.disabled = false;
-    btn.textContent = "Enter Dashboard";
-
-    if (res.success) {
-      HH.setSession("admin", { token: res.token, actor_id: "admin", actor_type: "admin" });
-      window.location.href = "index.html";
-    } else {
-      showErr(res.error || "Invalid code. Try again.");
-      document.getElementById("codeInput").value = "";
-    }
-  });
-
-  function showErr(m) {
-    const e = document.getElementById("loginError");
-    e.textContent = m;
-    e.style.display = "block";
+    // Set session directly — no API call needed
+    HH.setSession("admin", {
+      token: "admin_direct",
+      actor_id: "admin",
+      actor_type: "admin"
+    });
+    window.location.href = "index.html";
   }
-
-  document.getElementById("codeInput").addEventListener("input", function() {
-    if (this.value.length === 7) document.getElementById("loginForm").requestSubmit();
-  });
 </script>
 </body>
 </html>
