@@ -699,7 +699,6 @@ function getAgents(body) {
 }
 
 function getSellers(body) {
-  requireAdmin(body);
   const sellers = sheetToObjects(getSheet("Sellers")).map(s => ({
     ...s, password: undefined
   }));
