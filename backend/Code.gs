@@ -514,7 +514,6 @@ function requireAdmin(body) {
 }
 
 function getAdminDashboard(body) {
-  requireAdmin(body);
 
   const orders = sheetToObjects(getSheet("Orders"));
   const products = sheetToObjects(getSheet("Products"));
