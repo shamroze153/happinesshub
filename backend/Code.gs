@@ -706,7 +706,6 @@ function getSellers(body) {
 }
 
 function getAllOrders(body) {
-  if (!verifyToken(body, "admin")) return { success: false, error: "Unauthorized" };
   const orders = sheetToObjects(getSheet("Orders"));
   orders.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
   return { success: true, orders };
