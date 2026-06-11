@@ -508,10 +508,8 @@ function adminLogin(body) {
   return { success: true, token };
 }
 
-function requireAdmin(body) {
-  // Open admin — no auth required
-  return true;
-}
+function getAgents(body) {
+  requireAdmin(body);
 
 function getAdminDashboard(body) {
   requireAdmin(body);
