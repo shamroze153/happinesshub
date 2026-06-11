@@ -52,12 +52,9 @@ function handleRequest(e) {
 }
 
 function parseBody(e) {
-  try {
-    if (e.postData && e.postData.contents) {
-      return JSON.parse(e.postData.contents);
-    }
-  } catch (_) {}
-  return {};
+  try { if (e.postData && e.postData.contents) return JSON.parse(e.postData.contents); } catch (_) {}
+  // Fall back to GET params if no POST body
+  return e.parameter || {};
 }
 
 function jsonResponse(data, headers) {
