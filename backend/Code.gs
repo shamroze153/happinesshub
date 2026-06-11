@@ -496,14 +496,15 @@ function updateOrderStatus(body) {
 // ─────────────────────────────────────────────
 
 function adminLogin(body) {
-  const { admin_id, password } = body;
-  if (!admin_id || !password) return { success: false, error: "ID and password required" };
-  if (admin_id !== CONFIG.ADMIN_ID) return { success: false, error: "Invalid credentials" };
-
-  const hashed = hashPassword(password);
-  if (password !== CONFIG.ADMIN_PASSWORD && hashed !== CONFIG.ADMIN_PASSWORD) {
-    return { success: false, error: "Invalid credentials" };
+  const { code } = body;
+  if (!code) return { success: false, error: "Access code required" };
+  if (String(code).trim() !== String(CONFIG.ADMIN_PASSWORD).trim()) {
+    return { success: false, error: "Invalid access code" };
   }
+  const token = createToken("admin", "admin");
+  logActivity("admin", "admin", "login", {});
+  return { success: true, token };
+}
 
   const token = createToken(admin_id, "admin");
   logActivity(admin_id, "admin", "login", {});
