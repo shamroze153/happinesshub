@@ -50,7 +50,7 @@
     btn.disabled = true;
     btn.textContent = "Verifying...";
 
-    const res = await HH.post("adminLogin", { code });
+    const res = await HH.get("adminLogin", { code });
 
     btn.disabled = false;
     btn.textContent = "Enter Dashboard";
