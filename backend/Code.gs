@@ -9,8 +9,8 @@
 const CONFIG = {
   SPREADSHEET_ID: "1NhJ6GobyokHQRsgWA-_BOuIKJyUJ81a-vH8QMr-P1w4",
   DRIVE_FOLDER_ID: "1I-Kdz4gglxD-7A__SLNE4YH2grDMohep",
-  ADMIN_PASSWORD: "admin78690",  // Change this immediately after setup
-  ADMIN_ID: "admin",
+  ADMIN_PASSWORD: "7869001",
+ADMIN_ID: "7869001",
   SESSION_SECRET: "hh_secret_2024", // Change this
 };
 
