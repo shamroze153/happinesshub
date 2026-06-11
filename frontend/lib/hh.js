@@ -5,7 +5,7 @@
 
 const HH = (() => {
   // ─── CONFIG ───────────────────────────────────────────────
-  const API_URL = "https://script.google.com/macros/s/AKfycbzNKttago6gy0iaqkh78wqLny-m7b6zHa0vWYz1Si3WXnOGjS31dlcD1V1V80Ut5EEt/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbwDvYjM2d2BNUtd8bb13uZjmd5SH0iQjN1axFwAhxAIwk5oUNFYIHEbSGR7kiW1auoT/exec";
   const CURRENCY = "$";
 
   // ─── API ──────────────────────────────────────────────────
