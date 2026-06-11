@@ -1,49 +1,36 @@
 /**
  * Happiness Hub — Shared JS Library
- * Include this before any page-specific JS
+ * ALL requests use GET to avoid CORS issues with Google Apps Script
  */
 
 const HH = (() => {
-  // ─── CONFIG ───────────────────────────────────────────────
   const API_URL = "https://script.google.com/macros/s/AKfycbwDvYjM2d2BNUtd8bb13uZjmd5SH0iQjN1axFwAhxAIwk5oUNFYIHEbSGR7kiW1auoT/exec";
   const CURRENCY = "$";
 
-  // ─── API ──────────────────────────────────────────────────
-  async function api(action, params = {}, method = "GET", body = null) {
+  // ── API — ALL via GET ──────────────────────────────────────
+  async function get(action, params = {}) {
     try {
       let url = `${API_URL}?action=${action}`;
-      if (method === "GET") {
-        Object.keys(params).forEach(k => {
-          if (params[k] !== undefined && params[k] !== null) {
-            url += `&${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`;
-          }
-        });
-      }
-      const opts = {
-        method,
-        headers: { "Content-Type": "application/json" },
-      };
-      if (method === "POST" && body) {
-        opts.body = JSON.stringify(body);
-      }
-      const res = await fetch(url, opts);
+      Object.keys(params).forEach(k => {
+        if (params[k] !== undefined && params[k] !== null && params[k] !== "") {
+          url += `&${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`;
+        }
+      });
+      const res = await fetch(url);
       const data = await res.json();
       return data;
     } catch (err) {
-      console.error("API error:", err);
+      console.error("API GET error:", err);
       return { success: false, error: "Network error. Please try again." };
     }
   }
 
-  async function get(action, params = {}) {
-    return api(action, params, "GET");
-  }
-
+  // POST also converted to GET with all params in URL
   async function post(action, body = {}) {
-    return api(action, {}, "POST", { action, ...body });
+    return get(action, body);
   }
 
-  // ─── AUTH ──────────────────────────────────────────────────
+  // ── AUTH ───────────────────────────────────────────────────
   function getSession(role) {
     try {
       const s = localStorage.getItem(`hh_session_${role}`);
@@ -78,7 +65,7 @@ const HH = (() => {
     };
   }
 
-  // ─── REFERRAL ──────────────────────────────────────────────
+  // ── REFERRAL ───────────────────────────────────────────────
   function captureRef() {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
@@ -90,7 +77,7 @@ const HH = (() => {
     return sessionStorage.getItem("hh_ref") || "";
   }
 
-  // ─── FORMATTING ────────────────────────────────────────────
+  // ── FORMATTING ─────────────────────────────────────────────
   function formatCashback(amount) {
     const n = parseFloat(amount) || 0;
     return `${CURRENCY}${n.toFixed(2)}`;
@@ -131,7 +118,7 @@ const HH = (() => {
       .replace(/"/g, "&quot;");
   }
 
-  // ─── TOAST ─────────────────────────────────────────────────
+  // ── TOAST ──────────────────────────────────────────────────
   function toast(message, type = "info", duration = 3500) {
     let container = document.getElementById("hh-toast-container");
     if (!container) {
@@ -140,57 +127,31 @@ const HH = (() => {
       container.style.cssText = "position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;";
       document.body.appendChild(container);
     }
-
-    const toast = document.createElement("div");
-    toast.className = `hh-toast hh-toast-${type}`;
-    toast.style.cssText = `
-      padding: 12px 20px;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 500;
-      max-width: 320px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-      animation: toastIn 0.3s ease;
-      background: ${type === "success" ? "#22c55e" : type === "error" ? "#ef4444" : "#6C63FF"};
-    `;
-    toast.textContent = message;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transition = "opacity 0.3s";
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
+    const t = document.createElement("div");
+    t.style.cssText = `padding:12px 20px;border-radius:10px;color:#fff;font-size:14px;font-weight:500;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;background:${type==="success"?"#22c55e":type==="error"?"#ef4444":"#6C63FF"};`;
+    t.textContent = message;
+    container.appendChild(t);
+    setTimeout(() => { t.style.opacity="0"; t.style.transition="opacity 0.3s"; setTimeout(()=>t.remove(),300); }, duration);
   }
 
-  // ─── IMAGE FALLBACK ────────────────────────────────────────
+  // ── IMAGE FALLBACK ─────────────────────────────────────────
   function imgWithFallback(src, alt, cls = "") {
-    const fallback = `https://placehold.co/400x300/6C63FF/fff?text=${encodeURIComponent(alt || "Product")}`;
-    return `<img src="${escapeHtml(src) || fallback}" alt="${escapeHtml(alt)}" class="${cls}" onerror="this.src='${fallback}'" loading="lazy">`;
+    const fallback = `https://placehold.co/400x300/6C63FF/fff?text=${encodeURIComponent(alt||"Product")}`;
+    return `<img src="${escapeHtml(src)||fallback}" alt="${escapeHtml(alt)}" class="${cls}" onerror="this.src='${fallback}'" loading="lazy">`;
   }
 
-  // ─── LOADER ────────────────────────────────────────────────
+  // ── LOADER ─────────────────────────────────────────────────
   function showLoader(containerId) {
     const el = document.getElementById(containerId);
-    if (el) el.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:16px;">
-        <div class="spinner"></div>
-        <p style="color:var(--text-secondary);font-size:14px;">Loading...</p>
-      </div>`;
+    if (el) el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:60px;flex-direction:column;gap:16px;"><div class="spinner"></div><p style="color:var(--text-secondary);font-size:14px;">Loading...</p></div>`;
   }
 
   function showError(containerId, message) {
     const el = document.getElementById(containerId);
-    if (el) el.innerHTML = `
-      <div style="text-align:center;padding:60px;color:var(--text-secondary);">
-        <div style="font-size:48px;margin-bottom:16px;">😕</div>
-        <p>${escapeHtml(message)}</p>
-        <button onclick="location.reload()" class="btn-primary" style="margin-top:20px;">Try Again</button>
-      </div>`;
+    if (el) el.innerHTML = `<div style="text-align:center;padding:60px;color:var(--text-secondary);"><div style="font-size:48px;margin-bottom:16px;">😕</div><p>${escapeHtml(message)}</p><button onclick="location.reload()" class="btn-primary" style="margin-top:20px;">Try Again</button></div>`;
   }
 
-  // ─── FILE → BASE64 ─────────────────────────────────────────
+  // ── FILE UPLOAD ────────────────────────────────────────────
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -204,7 +165,7 @@ const HH = (() => {
     if (!file) return null;
     if (file.size > 5 * 1024 * 1024) throw new Error("File must be under 5MB");
     const base64data = await fileToBase64(file);
-    const result = await post("uploadFile", {
+    const result = await get("uploadFile", {
       filename: file.name,
       base64data,
       mimetype: file.type,
@@ -214,7 +175,7 @@ const HH = (() => {
   }
 
   return {
-    api, get, post,
+    get, post,
     getSession, setSession, clearSession, requireAuth, getAuthBody,
     captureRef, getRef,
     formatCashback, timeAgo, statusBadge, escapeHtml, imgWithFallback,
