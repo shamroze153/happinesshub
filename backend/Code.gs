@@ -512,7 +512,8 @@ function adminLogin(body) {
 }
 
 function requireAdmin(body) {
-  if (!verifyToken(body, "admin")) throw new Error("Unauthorized");
+  // Open admin — no auth required
+  return true;
 }
 
 function getAdminDashboard(body) {
