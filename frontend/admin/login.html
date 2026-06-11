@@ -10,13 +10,7 @@
     .login-card { width: 100%; max-width: 380px; animation: slideUp 0.4s ease; }
     .logo-wrap { text-align: center; margin-bottom: 32px; }
     .logo-icon-admin { width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, var(--primary-dark), var(--primary-light)); display: flex; align-items: center; justify-content: center; font-size: 30px; margin: 0 auto 14px; }
-    .code-input {
-      text-align: center;
-      font-size: 2rem;
-      font-weight: 800;
-      letter-spacing: 12px;
-      font-family: monospace;
-    }
+    .code-input { text-align: center; font-size: 2rem; font-weight: 800; letter-spacing: 12px; font-family: monospace; }
   </style>
 </head>
 <body>
@@ -30,24 +24,11 @@
   <form id="loginForm" novalidate>
     <div class="form-group">
       <label class="form-label" style="text-align:center;display:block;">Access Code</label>
-      <input
-        type="password"
-        id="codeInput"
-        class="form-control code-input"
-        placeholder="●●●●●●●"
-        maxlength="10"
-        autocomplete="off"
-        required
-      >
+      <input type="password" id="codeInput" class="form-control code-input" placeholder="●●●●●●●" maxlength="10" autocomplete="off" required>
     </div>
-
     <div id="loginError" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius-md);padding:12px 14px;font-size:14px;color:#ef4444;margin-bottom:16px;text-align:center;"></div>
-
-    <button type="submit" class="btn-primary w-full" id="loginBtn" style="font-size:16px;padding:14px;">
-      Enter Dashboard
-    </button>
+    <button type="submit" class="btn-primary w-full" id="loginBtn" style="font-size:16px;padding:14px;">Enter Dashboard</button>
   </form>
-
   <div style="text-align:center;margin-top:20px;">
     <a href="../index.html" style="font-size:13px;color:var(--text-muted);">← Back to Site</a>
   </div>
@@ -75,16 +56,11 @@
     btn.textContent = "Enter Dashboard";
 
     if (res.success) {
-      HH.setSession("admin", {
-        token: res.token,
-        actor_id: "admin",
-        actor_type: "admin"
-      });
+      HH.setSession("admin", { token: res.token, actor_id: "admin", actor_type: "admin" });
       window.location.href = "index.html";
     } else {
       showErr(res.error || "Invalid code. Try again.");
       document.getElementById("codeInput").value = "";
-      document.getElementById("codeInput").focus();
     }
   });
 
@@ -94,11 +70,8 @@
     e.style.display = "block";
   }
 
-  // Auto-submit when 7 digits entered
   document.getElementById("codeInput").addEventListener("input", function() {
-    if (this.value.length === 7) {
-      document.getElementById("loginForm").requestSubmit();
-    }
+    if (this.value.length === 7) document.getElementById("loginForm").requestSubmit();
   });
 </script>
 </body>
